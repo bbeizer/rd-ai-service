@@ -1,16 +1,91 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 from ai_logic import ai_service
+import logging
+import json
+from copy import deepcopy
+from collections import OrderedDict
+import copy
 
 app = Flask(__name__)
+CORS(app, resources={r"/ai/move": {"origins": "*"}})  # Enable CORS globally
 
 @app.route('/ai/move', methods=['POST'])
 def get_ai_move():
-    game_state_json = request.get_json()
-    
-    ai_move = ai_service(game_state_json)
-    
-    return jsonify({"move": ai_move})
+    try:
+        # Parse the incoming game state
+        game_state = request.get_json()
+        if not game_state:
+            logging.error("Invalid or no game state provided.")
+            return jsonify({'error': 'Invalid or no game state provided'}), 400
 
-# Run the app on localhost:5000
+        logging.info("Received game state:\n%s", json.dumps(game_state, indent=2))
+
+        # Process the game state with the AI logic
+        updated_game_state = ai_service(game_state)
+
+        # Serialize and normalize the game data
+        normalized_game_state = serialize_game_data(updated_game_state)
+
+        # Validate the serialized response
+        if not normalized_game_state.get("gameData"):
+            logging.error("AI service returned incomplete data.")
+            return jsonify({'error': 'Incomplete data from AI service'}), 500
+
+        # Construct the flattened response
+        response = {
+            "gameId": normalized_game_state.get("gameId"),
+            "gameType": normalized_game_state.get("gameType"),
+            "gameData": normalized_game_state.get("gameData"),
+            "isUserTurn": normalized_game_state.get("isUserTurn"),
+            "activePiece": normalized_game_state.get("activePiece"),
+            "possibleMoves": normalized_game_state.get("possibleMoves"),
+            "movedPiece": normalized_game_state.get("movedPiece"),
+            "movedPieceOriginalPosition": normalized_game_state.get("movedPieceOriginalPosition"),
+            "possiblePasses": normalized_game_state.get("possiblePasses"),
+            "playerColor": normalized_game_state.get("playerColor"),
+            "winner": normalized_game_state.get("winner")
+        }
+
+        logging.info("Returning normalized game state:\n%s", json.dumps(response, indent=2))
+        return jsonify(response)
+
+    except Exception as e:
+        logging.error(f"Error in AI move processing: {str(e)}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
+def serialize_game_data(game_data):
+    """
+    Normalize and serialize the game data for consistent frontend rendering.
+    """
+    from collections import OrderedDict
+    import copy
+
+    # Make a copy to avoid mutating the original
+    game_data_copy = copy.deepcopy(game_data)
+
+    # Correct sorting: sort by row descending, then column ascending
+    board_status = game_data_copy['gameData']['currentBoardStatus']
+    sorted_board_status = OrderedDict(
+        sorted(
+            board_status.items(),
+            key=lambda kv: (-int(kv[0][1]), ord(kv[0][0]))  # Row descending, column ascending
+        )
+    )
+    game_data_copy['gameData']['currentBoardStatus'] = sorted_board_status
+
+    # Normalize other fields
+    game_data_copy['gameData']['activePiece'] = game_data_copy['gameData'].get("activePiece", {"hasBall": False})
+    game_data_copy['gameData']['movedPieceOriginalPosition'] = game_data_copy['gameData'].get("movedPieceOriginalPosition", None)
+    game_data_copy['gameData']['possibleMoves'] = game_data_copy['gameData'].get("possibleMoves", [])
+    game_data_copy['gameData']['possiblePasses'] = game_data_copy['gameData'].get("possiblePasses", [])
+
+    return game_data_copy
+
+
+
+
+
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000)
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    app.run(debug=True, host='0.0.0.0', port=5001)
