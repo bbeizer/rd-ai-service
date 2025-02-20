@@ -26,6 +26,14 @@ def extract_rank(position):
     # Strip the first letter and convert the rest to an integer
     return int(position[1:])
 
+def extract_row_col(position):
+    file = position[0]  # First character (letter)
+    rank = int(position[1])  # Second character (number)
+
+    row = 8 - rank  # Convert rank (1-8) to row (7-0)
+    col = ord(file) - ord('a')  # Convert file (a-h) to column (0-7)
+
+    return row, col
 
 def position_to_coords(pos):
     # Convert board position (e.g., "a1") to frontend-friendly row and column

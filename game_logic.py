@@ -1,8 +1,9 @@
 # game_logic.py
 import copy
-from utils import get_pieces_by_color, position_to_coords, coords_to_position, is_valid_position, generate_piece_moves, get_pieces_by_color, extract_file, extract_rank, get_ball_holder
+from utils import get_pieces_by_color, position_to_coords, coords_to_position, is_valid_position, generate_piece_moves, get_pieces_by_color, extract_file, extract_rank, extract_row_col, get_ball_holder, get_ai_color
+from collections import deque
 from copy import deepcopy
-
+import pdb; 
 
 def game_over(game_state):
     """
@@ -16,24 +17,26 @@ def game_over(game_state):
         return winner  # Someone has already won
     
     # Step 2: Check if someone has a **guaranteed winning path**
-    if has_forced_win(game_state, 'white'):
+    if check_and_return_win(game_state, 'white'):
         return 'white'  # White is guaranteed to win
 
-    if has_forced_win(game_state, 'black'):
+    if check_and_return_win(game_state, 'black'):
         return 'black'  # Black is guaranteed to win
 
     return None  # No winner yet
 
-def has_forced_win(game_state, player_color):
+def check_and_return_win(game_state, player_color):
     """
-    Returns True if the player has a guaranteed passing sequence to score.
+    Returns the winning move (from_pos, to_pos) if a guaranteed pass to score exists.
+    Otherwise, returns None.
     """
     board_status = game_state['gameData']['currentBoardStatus']
-    pieces = get_pieces_by_color(board_status, player_color)
+    pieces = get_pieces_by_color(board_status, player_color)  # Current player's pieces
+    opponent_pieces = get_pieces_by_color(board_status, 'white' if player_color == 'black' else 'black')  # Opponent's pieces
     ball_holder = get_ball_holder(pieces)
 
     if not ball_holder:
-        return False  # No ball-holder, no forced win
+        return None  # No ball-holder, no forced win
 
     goal_row = 1 if player_color == 'black' else 8  # Black AI scores on row 1, White scores on row 8
 
@@ -41,16 +44,73 @@ def has_forced_win(game_state, player_color):
     endzone_pieces = [p for p in pieces if extract_rank(p['position']) == goal_row]
 
     if not endzone_pieces:
-        return False  # No teammates in the endzone, no auto-win
+        return None  # No teammates in the endzone, no auto-win
 
-    # Check if the ball-holder can pass to an endzone piece without an opponent blocking
-    opponent_pieces = get_pieces_by_color(board_status, get_ai_color())  # Get the opponent's pieces
+    # Check if the ball-holder can pass directly to an endzone piece
     for end_piece in endzone_pieces:
         if is_passable_path(ball_holder, end_piece, opponent_pieces, pieces):
-            print(f"🔥 {player_color.upper()} has a forced win! {ball_holder['position']} can pass to {end_piece['position']}")
-            return True  # Player can guarantee a win
+            print(f"🔥 FORCED WIN DETECTED: {ball_holder['position']} ➝ {end_piece['position']}")
+            board_status[ball_holder["position"]]["hasBall"] = False
+            board_status[end_piece["position"]]["hasBall"] = True
+            return {"score": -10000000, "state": game_state}
 
-    return False  # No forced win found
+    # **New: Check if another teammate can be used to pass the ball into the endzone**
+    for piece in pieces:
+        if piece == ball_holder or piece in endzone_pieces:
+            continue  # Skip the ball-holder and pieces already in the endzone
+
+        # Can the ball-holder pass to this piece?
+        if is_passable_path(ball_holder, piece, opponent_pieces, pieces):
+            # Can this piece then pass into the endzone?
+            for end_piece in endzone_pieces:
+                if is_passable_path(piece, end_piece, opponent_pieces, pieces):
+                    print(f"🔥 INDIRECT WIN DETECTED: {ball_holder['position']} ➝ {piece['position']} ➝ {end_piece['position']}")
+                    board_status[ball_holder["position"]]["hasBall"] = False
+                    board_status[end_piece["position"]]["hasBall"] = True
+                    return {"score": -10000000, "state": game_state}
+    return None  # No immediate forced win found
+
+
+def is_passable_path(ball_holder, target_piece, opponent_pieces, team_pieces):
+    """
+    Checks if a ball can be passed from ball_holder to target_piece.
+    - The pass must be a straight-line move (horizontal, vertical, diagonal).
+    - No opponent pieces should block the path.
+    - The target must be a teammate.
+    """
+
+    start_file, start_rank = position_to_coords(ball_holder['position'])
+    end_file, end_rank = position_to_coords(target_piece['position'])
+
+    # Ensure movement is straight-line (orthogonal or diagonal)
+    file_step = 1 if end_file > start_file else -1 if end_file < start_file else 0
+    rank_step = 1 if end_rank > start_rank else -1 if end_rank < start_rank else 0
+
+    # Start stepping toward target
+    current_file, current_rank = start_file + file_step, start_rank + rank_step
+
+    while (current_file, current_rank) != (end_file, end_rank):
+        # Ensure we stay in bounds
+        if not (0 <= current_file < 8 and 0 <= current_rank < 8):
+            return False  # Out of bounds
+
+        # Convert coordinates back to board notation
+        current_pos = coords_to_position(current_file, current_rank)
+
+        # If an opponent piece is in the way, return False
+        if any(p['position'] == current_pos for p in opponent_pieces):
+            return False  # Blocked by opponent
+
+        # If a teammate (not the target) is in the way, return False
+        if any(p['position'] == current_pos for p in team_pieces) and current_pos != target_piece['position']:
+            return False  # Blocked by teammate
+
+        # Move forward
+        current_file += file_step
+        current_rank += rank_step
+
+    return True  # Path is clear ✅
+
 
 
 
@@ -77,48 +137,6 @@ def check_literal_win(board_status):
                 return 'black'
 
     return None  # No literal win detected
-
-
-def is_passable_path(ball_holder, target_piece, opponent_pieces, all_pieces):
-    """
-    Determines if the ball-holder can pass to the target piece without an opponent blocking.
-    """
-    ball_position = ball_holder['position']
-    target_position = target_piece['position']
-
-    # Convert board positions to (file, rank)
-    ball_file, ball_rank = extract_file(ball_position), extract_rank(ball_position)
-    target_file, target_rank = extract_file(target_position), extract_rank(target_position)
-
-    # Generate the list of squares the ball must pass through
-    path_squares = get_path_squares(ball_file, ball_rank, target_file, target_rank)
-
-    # Check if any opponent pieces are blocking the path
-    for piece in opponent_pieces:
-        if piece['position'] in path_squares:
-            return False  # Pass is blocked
-
-    return True  # No opponent blocking, pass is possible
-
-def get_path_squares(start_file, start_rank, end_file, end_rank):
-    """
-    Returns a list of board squares representing the path from (start_file, start_rank)
-    to (end_file, end_rank) in a straight line.
-    """
-    path = []
-    
-    file_step = 1 if end_file > start_file else -1 if end_file < start_file else 0
-    rank_step = 1 if end_rank > start_rank else -1 if end_rank < start_rank else 0
-
-    current_file, current_rank = start_file + file_step, start_rank + rank_step
-
-    while (current_file, current_rank) != (end_file, end_rank):
-        path.append(f"{chr(current_file + ord('a'))}{current_rank}")  # Convert (file, rank) to board notation
-        current_file += file_step
-        current_rank += rank_step
-
-    return path
-
 
 def get_child_states(game_state, is_maximizing):
     """
