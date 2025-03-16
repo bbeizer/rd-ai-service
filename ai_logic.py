@@ -13,12 +13,12 @@ def ai_service(game_state):
     best_state = result["state"]  # Extract the best state
 
     # Force current player turn to 'white'
-    best_state['gameData']['currentPlayerTurn'] = 'white'
+    best_state['currentPlayerTurn'] = 'white'
     # Log object at letter6 before deepcopy
     letter6_positions = ['e6', 'd6', 'f6', 'c6']  # Add relevant positions
     print("Objects at letter6 before deepcopy:")
     for pos in letter6_positions:
-        print(f"{pos}: {best_state['gameData']['currentBoardStatus'].get(pos)}")
+        print(f"{pos}: {best_state['currentBoardStatus'].get(pos)}")
     
     print(f"Best state chosen with score: {result['score']}")
     print("About to Deepcopy the best state...")
@@ -31,7 +31,7 @@ def ai_service(game_state):
     # Log object at letter 6 after deepcopy
     print("Objects at letter 6 after deepcopy:")
     for pos in letter6_positions:
-        print(f"{pos}: {updated_game_state['gameData']['currentBoardStatus'].get(pos)}")
+        print(f"{pos}: {updated_game_state['currentBoardStatus'].get(pos)}")
 
     print(f"Returned state: {updated_game_state}")
     return updated_game_state
@@ -80,7 +80,7 @@ def execute_forced_win(game_state, player_color, winning_move):
     print(f"🔥 {player_color.upper()} EXECUTING FORCED WIN!")
 
     updated_state = deepcopy(game_state)  # Ensure we don't mutate the original state
-    board_status = updated_state['gameData']['currentBoardStatus']
+    board_status = updated_state['currentBoardStatus']
     print("Printing Winning Move:")
     print(winning_move)
     from_pos, to_pos = winning_move
@@ -97,8 +97,8 @@ def execute_forced_win(game_state, player_color, winning_move):
     board_status[to_pos]['hasBall'] = True
 
     # **Step 3: Declare the winner**
-    updated_state['gameData']['winner'] = player_color
-    updated_state['gameData']['status'] = 'won'
+    updated_state['winner'] = player_color
+    updated_state['status'] = 'won'
 
     print(f"🏆 Ball passed from {from_pos} to {to_pos} — {player_color.upper()} WINS!")
     return updated_state
@@ -107,7 +107,7 @@ def execute_forced_win(game_state, player_color, winning_move):
 
 
 def evaluate_game_state(game_state):
-    board = game_state['gameData']['currentBoardStatus']
+    board = game_state['currentBoardStatus']
     white_pieces = get_pieces_by_color(board, 'white')
     black_pieces = get_pieces_by_color(board, 'black')
 

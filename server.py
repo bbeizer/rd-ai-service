@@ -24,68 +24,19 @@ def get_ai_move():
         # Process the game state with the AI logic
         updated_game_state = ai_service(game_state)
 
-        # Serialize and normalize the game data
-        normalized_game_state = serialize_game_data(updated_game_state)
-
-        # Validate the serialized response
-        if not normalized_game_state.get("gameData"):
+        # Validate the updated response
+        if "currentBoardStatus" not in updated_game_state:
             logging.error("AI service returned incomplete data.")
             return jsonify({'error': 'Incomplete data from AI service'}), 500
 
-        # Construct the flattened response
-        response = {
-            "gameId": normalized_game_state.get("gameId"),
-            "gameType": normalized_game_state.get("gameType"),
-            "gameData": normalized_game_state.get("gameData"),
-            "isUserTurn": normalized_game_state.get("isUserTurn"),
-            "activePiece": normalized_game_state.get("activePiece"),
-            "possibleMoves": normalized_game_state.get("possibleMoves"),
-            "movedPiece": normalized_game_state.get("movedPiece"),
-            "movedPieceOriginalPosition": normalized_game_state.get("movedPieceOriginalPosition"),
-            "possiblePasses": normalized_game_state.get("possiblePasses"),
-            "playerColor": normalized_game_state.get("playerColor"),
-            "winner": normalized_game_state.get("winner")
-        }
-
-        logging.info("Returning normalized game state:\n%s", json.dumps(response, indent=2))
-        return jsonify(response)
+        # ✅ Return the full updated game state
+        logging.info("Returning updated game state:\n%s", json.dumps(updated_game_state, indent=2))
+        return jsonify(updated_game_state)
 
     except Exception as e:
         logging.error(f"Error in AI move processing: {str(e)}", exc_info=True)
         return jsonify({'error': str(e)}), 500
-
-def serialize_game_data(game_data):
-    """
-    Normalize and serialize the game data for consistent frontend rendering.
-    """
-    from collections import OrderedDict
-    import copy
-
-    # Make a copy to avoid mutating the original
-    game_data_copy = copy.deepcopy(game_data)
-
-    # Correct sorting: sort by row descending, then column ascending
-    board_status = game_data_copy['gameData']['currentBoardStatus']
-    sorted_board_status = OrderedDict(
-        sorted(
-            board_status.items(),
-            key=lambda kv: (-int(kv[0][1]), ord(kv[0][0]))  # Row descending, column ascending
-        )
-    )
-    game_data_copy['gameData']['currentBoardStatus'] = sorted_board_status
-
-    # Normalize other fields
-    game_data_copy['gameData']['activePiece'] = game_data_copy['gameData'].get("activePiece", {"hasBall": False})
-    game_data_copy['gameData']['movedPieceOriginalPosition'] = game_data_copy['gameData'].get("movedPieceOriginalPosition", None)
-    game_data_copy['gameData']['possibleMoves'] = game_data_copy['gameData'].get("possibleMoves", [])
-    game_data_copy['gameData']['possiblePasses'] = game_data_copy['gameData'].get("possiblePasses", [])
-
-    return game_data_copy
-
-
-
-
-
+        
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
     app.run(debug=True, host='0.0.0.0', port=5001)

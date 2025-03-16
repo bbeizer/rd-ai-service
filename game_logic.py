@@ -9,7 +9,7 @@ def game_over(game_state):
     """
     Checks if the game is won OR if a player has a guaranteed winning path (even if the ball hasn't been passed yet).
     """
-    board_status = game_state['gameData']['currentBoardStatus']
+    board_status = game_state['currentBoardStatus']
     
     # Step 1: Check for literal wins (ball is in endzone)
     winner = check_literal_win(board_status)
@@ -30,7 +30,7 @@ def check_and_return_win(game_state, player_color):
     Returns the winning move (from_pos, to_pos) if a guaranteed pass to score exists.
     Otherwise, returns None.
     """
-    board_status = game_state['gameData']['currentBoardStatus']
+    board_status = game_state['currentBoardStatus']
     pieces = get_pieces_by_color(board_status, player_color)  # Current player's pieces
     opponent_pieces = get_pieces_by_color(board_status, 'white' if player_color == 'black' else 'black')  # Opponent's pieces
     ball_holder = get_ball_holder(pieces)
@@ -142,7 +142,7 @@ def get_child_states(game_state, is_maximizing):
     """
     Generate all possible child states for the current player.
     """
-    board_status = game_state['gameData']['currentBoardStatus']
+    board_status = game_state['currentBoardStatus']
     current_player = 'white' if is_maximizing else 'black'
     pieces = get_pieces_by_color(board_status, current_player)
     child_states = []
@@ -168,7 +168,7 @@ def update_board(game_state, piece, new_position):
     """
     # Deepcopy the game state to ensure immutability
     updated_state = deepcopy(game_state)
-    board = updated_state['gameData']['currentBoardStatus']
+    board = updated_state['currentBoardStatus']
 
     # Make a copy of the piece to avoid mutating the original
     updated_piece = deepcopy(piece)
@@ -182,8 +182,8 @@ def update_board(game_state, piece, new_position):
     board[new_position] = updated_piece
 
     # Switch turn to the other player
-    updated_state['gameData']['currentPlayerTurn'] = (
-        "black" if updated_state['gameData']['currentPlayerTurn'] == "white" else "white"
+    updated_state['currentPlayerTurn'] = (
+        "black" if updated_state['currentPlayerTurn'] == "white" else "white"
     )
 
     return updated_state

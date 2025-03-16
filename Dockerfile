@@ -17,4 +17,5 @@ COPY . .
 EXPOSE 5001
 
 # Command to run the AI service
-CMD ["python", "server.py"]
+CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:5001", "server:app"]
+
