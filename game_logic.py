@@ -1,6 +1,6 @@
 # game_logic.py
 import copy
-from utils import get_pieces_by_color, position_to_coords, coords_to_position, is_valid_position, generate_piece_moves, get_pieces_by_color, extract_file, extract_rank, extract_row_col, get_ball_holder, get_ai_color
+from utils import get_pieces_by_color, position_to_coords, coords_to_position, generate_piece_moves, get_pieces_by_color, extract_file, extract_rank, extract_row_col, get_ball_holder
 from collections import deque
 from copy import deepcopy
 import pdb; 
@@ -17,58 +17,92 @@ def game_over(game_state):
         return winner  # Someone has already won
     
     # Step 2: Check if someone has a **guaranteed winning path**
-    if check_and_return_win(game_state, 'white'):
+    if check_if_win(game_state, 'white'):
         return 'white'  # White is guaranteed to win
 
-    if check_and_return_win(game_state, 'black'):
+    if check_if_win(game_state, 'black'):
         return 'black'  # Black is guaranteed to win
 
     return None  # No winner yet
 
-def check_and_return_win(game_state, player_color):
+def check_and_return_win(game_state, potential_winner):
     """
-    Returns the winning move (from_pos, to_pos) if a guaranteed pass to score exists.
+    Returns the updated game state with the win executed if a forced win exists.
     Otherwise, returns None.
     """
     board_status = game_state['currentBoardStatus']
-    pieces = get_pieces_by_color(board_status, player_color)  # Current player's pieces
-    opponent_pieces = get_pieces_by_color(board_status, 'white' if player_color == 'black' else 'black')  # Opponent's pieces
-    ball_holder = get_ball_holder(pieces)
+    opponent = "black" if potential_winner == "white" else "white"
+    
+    # Get AI and opponent pieces
+    ai_pieces = get_pieces_by_color(board_status, potential_winner)
+    human_pieces = get_pieces_by_color(board_status, opponent)
+    ai_ball_holder = get_ball_holder(ai_pieces)
 
-    if not ball_holder:
+    if not ai_ball_holder:
         return None  # No ball-holder, no forced win
 
-    goal_row = 1 if player_color == 'black' else 8  # Black AI scores on row 1, White scores on row 8
+    goal_row = 1 if potential_winner == 'black' else 8  
 
     # Find all teammates that are already in the endzone
-    endzone_pieces = [p for p in pieces if extract_rank(p['position']) == goal_row]
+    endzone_pieces = [p for p in ai_pieces if extract_rank(p['position']) == goal_row]
 
     if not endzone_pieces:
         return None  # No teammates in the endzone, no auto-win
 
-    # Check if the ball-holder can pass directly to an endzone piece
+    # **Step 1: Check if the ball-holder can pass directly to an endzone piece**
     for end_piece in endzone_pieces:
-        if is_passable_path(ball_holder, end_piece, opponent_pieces, pieces):
-            print(f"🔥 FORCED WIN DETECTED: {ball_holder['position']} ➝ {end_piece['position']}")
-            board_status[ball_holder["position"]]["hasBall"] = False
-            board_status[end_piece["position"]]["hasBall"] = True
-            return {"score": -10000000, "state": game_state}
+        if is_passable_path(ai_ball_holder, end_piece, human_pieces, ai_pieces):
+            print(f"🔥 FORCED WIN DETECTED: {ai_ball_holder['position']} ➝ {end_piece['position']}")
 
-    # **New: Check if another teammate can be used to pass the ball into the endzone**
-    for piece in pieces:
-        if piece == ball_holder or piece in endzone_pieces:
+            # **Create a deep copy of the game state and update it**
+            updated_state = deepcopy(game_state)
+            board = updated_state['currentBoardStatus']
+            board[ai_ball_holder["position"]]["hasBall"] = False
+            board[end_piece["position"]]["hasBall"] = True
+
+            # **Declare the winner**
+            updated_state['winner'] = potential_winner
+            updated_state['status'] = 'won'
+            print(f"🏆 {potential_winner.upper()} WINS!")
+            return updated_state  # ✅ Directly return the updated game state
+
+    # **Step 2: Check for an indirect win (pass through another piece)**
+    for piece in ai_pieces:
+        if piece == ai_ball_holder or piece in endzone_pieces:
             continue  # Skip the ball-holder and pieces already in the endzone
 
-        # Can the ball-holder pass to this piece?
-        if is_passable_path(ball_holder, piece, opponent_pieces, pieces):
-            # Can this piece then pass into the endzone?
+        if is_passable_path(ai_ball_holder, piece, human_pieces, ai_pieces):
             for end_piece in endzone_pieces:
-                if is_passable_path(piece, end_piece, opponent_pieces, pieces):
-                    print(f"🔥 INDIRECT WIN DETECTED: {ball_holder['position']} ➝ {piece['position']} ➝ {end_piece['position']}")
-                    board_status[ball_holder["position"]]["hasBall"] = False
-                    board_status[end_piece["position"]]["hasBall"] = True
-                    return {"score": -10000000, "state": game_state}
+                if is_passable_path(piece, end_piece, human_pieces, ai_pieces):
+                    print(f"🔥 INDIRECT WIN DETECTED: {ai_ball_holder['position']} ➝ {piece['position']} ➝ {end_piece['position']}")
+
+                    # **Create a deep copy and execute the indirect pass**
+                    updated_state = deepcopy(game_state)
+                    board = updated_state['currentBoardStatus']
+                    board[ai_ball_holder["position"]]["hasBall"] = False
+                    board[piece["position"]]["hasBall"] = False
+                    board[end_piece["position"]]["hasBall"] = True
+
+                    # **Declare the winner**
+                    updated_state['winner'] = potential_winner
+                    updated_state['playing'] = 'won'
+                    print(f"🏆 {potential_winner.upper()} WINS!")
+                    return updated_state  # ✅ Directly return the updated game state
+
     return None  # No immediate forced win found
+
+
+def check_if_win(game_state, color):
+    """
+    Pure function that checks if a player has won, without making a move.
+    """
+    for position, piece in game_state['currentBoardStatus'].items():
+        if piece and piece['color'] == color and piece['hasBall']:
+            goal_row = 8 if color == 'white' else 1
+            if extract_rank(position) == goal_row:
+                return True  # This player has won
+    return False
+
 
 
 def is_passable_path(ball_holder, target_piece, opponent_pieces, team_pieces):

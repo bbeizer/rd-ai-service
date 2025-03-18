@@ -14,9 +14,6 @@ def get_ball_holder(pieces):
             return piece
     return None  # If no piece has the ball, return None
 
-def get_ai_color(color):
-    return color
-
 def extract_file(position):
     # Extracts the file (column) from a chess position. Converts 'a' to 1, 'b' to 2, ..., 'h' to 8.
     return ord(position[0]) - ord('a') + 1
