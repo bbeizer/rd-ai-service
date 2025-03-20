@@ -1,11 +1,11 @@
 # ai_service.py
 from copy import deepcopy
 from game_logic import (
+    check_and_return_win_for_ai,
     game_over,
     get_child_states,
     get_pieces_by_color,
-    check_and_return_win,
-    check_if_win,
+    check_for_win,
     is_passable_path
 )
 from utils import extract_file, extract_rank, get_ball_holder
@@ -21,22 +21,9 @@ def ai_service(game_state):
     depth = 1  # Adjust as needed for lookahead
     print("🚀 STARTING MINIMAX")
     ai_color = game_state["aiColor"]
-    
-    # Immediate forced win check (before running minimax)
-    win_state = check_and_return_win(game_state, ai_color)
-    if win_state:
-        print(f"🏆 IMMEDIATE WIN FOUND for {ai_color}!")
-        win_state['currentPlayerTurn'] = 'white'
-        return deepcopy(win_state)
-    
-    # Run minimax to select the best move
-    # Choose maximizing if AI is white, minimizing if AI is black.
     is_maximizing = True if ai_color == "white" else False
     result = minimax(game_state, ai_color, depth, is_maximizing)
     best_state = result["state"]
-    
-    # Force the turn to be 'white' (assuming the human always is white)
-    best_state['currentPlayerTurn'] = 'white'
     
     print(f"✅ Best move chosen with score: {result['score']}")
     print("💾 Deepcopying the best state to return...")
@@ -47,15 +34,8 @@ def minimax(game_state, ai_color, depth, is_maximizing):
     
     # Base case: if depth is 0 or game is over, evaluate the state.
     if depth == 0 or game_over(game_state):
-        # At base level, check if a forced win exists.
-        win_state = check_and_return_win(game_state, ai_color)
-        if win_state:
-            print(f"🏆 Forced win detected at base level for {ai_color}!")
-            score = float('inf') if ai_color == "white" else float('-inf')
-            return {"score": score, "state": win_state}
-        
         score = evaluate_game_state(game_state)
-        return {"score": score, "state": game_state}
+        return {"score": score, "state": game_state}  # ✅ Returning only score at depth 0
     
     best_state = None
     if is_maximizing:
@@ -64,16 +44,17 @@ def minimax(game_state, ai_color, depth, is_maximizing):
             result = minimax(child_state, ai_color, depth - 1, False)
             if result["score"] > best_score:
                 best_score = result["score"]
-                best_state = result["state"]
-        return {"score": best_score, "state": best_state}
+                best_state = child_state  # ✅ Store best move
     else:
         best_score = float('inf')
         for child_state in get_child_states(game_state, is_maximizing):
             result = minimax(child_state, ai_color, depth - 1, True)
             if result["score"] < best_score:
                 best_score = result["score"]
-                best_state = result["state"]
-        return {"score": best_score, "state": best_state}
+                best_state = child_state  # ✅ Store best move
+    
+    return {"score": best_score, "state": best_state}  # ✅ Return game state at depth N
+
 
 def generate_state_key(game_state):
     """
@@ -101,9 +82,9 @@ def evaluate_game_state(game_state):
     score = reward_progress_toward_endzone(white_pieces, black_pieces)
     
     # Adjust if a win is near.
-    if check_if_win(game_state, 'white'):
+    if check_for_win(game_state, 'white'):
         score += 5000
-    if check_if_win(game_state, 'black'):
+    if check_for_win(game_state, 'black'):
         score -= 5000
     
     # Reward a clear passing path.

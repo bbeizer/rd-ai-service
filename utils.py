@@ -1,12 +1,40 @@
 # utils.py
 
-def get_pieces_by_color(board_status, color):
+def get_pieces_by_color(board, color):
     pieces = [
-        piece for pos, piece in board_status.items()
+        piece for pos, piece in board.items()
         if piece and piece['color'] == color
     ]
     print(f"Pieces for {color}: {[p['position'] for p in pieces]}")  # Log positions of pieces
     return pieces
+
+def get_pieces_by_color_by_rank(board, rank, color):
+    """
+    Get all pieces on a given rank (row) of the board.
+    
+    Args:
+        board (dict): Dictionary representing the board state.
+        rank (int): The rank (row number) to filter pieces by.
+
+    Returns:
+        list: A list of pieces that are on the given rank.
+    """
+    pieces = [
+        piece for pos, piece in board.items()
+        if piece and extract_rank(pos) == rank and piece['color'] == color
+    ]
+    print(f"Pieces on rank {rank}: {[p['position'] for p in pieces]}")  # Log positions of pieces
+    return pieces
+
+def pass_ball(from_piece, to_piece):
+    """
+    Transfers the ball from `from_piece` to `to_piece`.
+    Assumes the pass has already been validated by `is_passable_path`.
+    """
+    from_piece['hasBall'] = False
+    to_piece['hasBall'] = True
+
+
 
 def get_ball_holder(pieces):
     for piece in pieces:
@@ -41,14 +69,14 @@ def coords_to_position(x, y):
     # Convert row and column back to board position (e.g., (0, 7) -> "a1")
     return f"{chr(x + ord('a'))}{8 - y}"
     
-def is_valid_position(col, row, board_status):
+def is_valid_position(col, row, board):
     """
     Check if a position (col, row) is valid on the board and not occupied.
     """
     pos = coords_to_position(col, row)  # Convert to position string
-    return 0 <= col < 8 and 0 <= row < 8 and (pos not in board_status or board_status[pos] is None)
+    return 0 <= col < 8 and 0 <= row < 8 and (pos not in board or board[pos] is None)
 
-def generate_piece_moves(pos, board_status):
+def generate_piece_moves(pos, board):
     """
     Generate all valid knight moves from a given position.
     """
@@ -61,13 +89,13 @@ def generate_piece_moves(pos, board_status):
 
     for dx, dy in knight_offsets:
         new_x, new_y = x + dx, y + dy
-        if is_valid_position(new_x, new_y, board_status):
+        if is_valid_position(new_x, new_y, board):
             legal_moves.append(coords_to_position(new_x, new_y))
     print(f"Moves generated for {pos}: {legal_moves}")
     return legal_moves
 
 
-def generate_ball_passes(pos, board_status, color):
+def generate_ball_passes(pos, board, color):
     """
     Generate all valid ball passes from a given position to adjacent pieces of the same color.
     """
@@ -82,7 +110,7 @@ def generate_ball_passes(pos, board_status, color):
         new_x, new_y = x + dx, y + dy
         if 0 <= new_x < 8 and 0 <= new_y < 8:
             target_pos = coords_to_position(new_x, new_y)
-            target_piece = board_status.get(target_pos)
+            target_piece = board.get(target_pos)
             if target_piece and target_piece['color'] == color:
                 valid_passes.append(target_pos)
 
