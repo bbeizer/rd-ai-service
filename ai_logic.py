@@ -18,10 +18,15 @@ def ai_service(game_state):
     Compute the AI move using minimax and return the updated game state.
     Immediate forced win detection is done at the base case.
     """
-    depth = 1  # Adjust as needed for lookahead
+    depth = 3  # Adjust as needed for lookahead
     print("🚀 STARTING MINIMAX")
     ai_color = game_state["aiColor"]
     is_maximizing = True if ai_color == "white" else False
+        # ✅ **Step 1: Check for Immediate Forced Win**
+    winning_state = check_and_return_win_for_ai(game_state, ai_color)
+    if winning_state:
+        print(f"🏆 IMMEDIATE WIN FOUND for {ai_color}!")
+        return deepcopy(winning_state)  # ✅ **Return immediately**
     result = minimax(game_state, ai_color, depth, is_maximizing)
     best_state = result["state"]
     
