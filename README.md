@@ -1,2 +1,11 @@
 # rd-ai-service
-This is a python service that interprets json sent from RD Frontend, runs an algorithm to make a move, and sends it back to RD Frontend
+This is a python service that interprets json sent from RD Frontend, runs a minimax algorithm on the gameBoard
+and sends json back to the frontend
+
+# Bugs and Improvements
+need to make sure AI abides by rules of the game and thouroughly test the AI
+improve evaluation function
+add alpha-beta pruning or caching
+add should_pass flag into is_passable_path()
+
+
