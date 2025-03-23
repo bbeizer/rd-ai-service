@@ -26,6 +26,8 @@ def ai_service(game_state):
     winning_state = check_and_return_win_for_ai(game_state, ai_color)
     if winning_state:
         print(f"🏆 IMMEDIATE WIN FOUND for {ai_color}!")
+        winning_state["status"] = 'completed'
+        winning_state["winner"] = 'AI'
         return deepcopy(winning_state)  # ✅ **Return immediately**
     result = minimax(game_state, ai_color, depth, is_maximizing)
     best_state = result["state"]
