@@ -29,14 +29,15 @@ def ai_service(game_state):
         winning_state["status"] = 'completed'
         winning_state["winner"] = 'AI'
         return deepcopy(winning_state)  # ✅ **Return immediately**
-    result = minimax(game_state, ai_color, depth, is_maximizing)
+    result = minimax(game_state, ai_color, depth, is_maximizing, alpha=float('-inf'), beta=float('inf'))
     best_state = result["state"]
     
     print(f"✅ Best move chosen with score: {result['score']}")
     print("💾 Deepcopying the best state to return...")
     return deepcopy(best_state)
 
-def minimax(game_state, ai_color, depth, is_maximizing):
+# TODO: update the minimax to utilize alpha beta pruning
+def minimax(game_state, ai_color, depth, is_maximizing, alpha, beta):
     print(f"{'Maximizing' if is_maximizing else 'Minimizing'} at depth {depth}")
     
     # Base case: if depth is 0 or game is over, evaluate the state.
