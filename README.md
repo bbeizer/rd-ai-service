@@ -5,7 +5,6 @@ and sends json back to the frontend
 # Bugs and Improvements
 need to make sure AI abides by rules of the game and thouroughly test the AI
 improve evaluation function
-add alpha-beta pruning or caching
 add should_pass flag into is_passable_path()
 
 
