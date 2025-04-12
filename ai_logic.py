@@ -18,7 +18,7 @@ def ai_service(game_state):
     Compute the AI move using minimax and return the updated game state.
     Immediate forced win detection is done at the base case.
     """
-    depth = 3  # Adjust as needed for lookahead
+    depth = 5  # Adjust as needed for lookahead
     print("🚀 STARTING MINIMAX")
     ai_color = game_state["aiColor"]
     is_maximizing = True if ai_color == "white" else False
@@ -36,33 +36,39 @@ def ai_service(game_state):
     print("💾 Deepcopying the best state to return...")
     return deepcopy(best_state)
 
-# TODO: update the minimax to utilize alpha beta pruning
 def minimax(game_state, ai_color, depth, is_maximizing, alpha, beta):
-    print(f"{'Maximizing' if is_maximizing else 'Minimizing'} at depth {depth}")
-    
-    # Base case: if depth is 0 or game is over, evaluate the state.
+    print(f"{'🔼 Maximizing' if is_maximizing else '🔽 Minimizing'} at depth {depth}")
+
     if depth == 0 or game_over(game_state):
         score = evaluate_game_state(game_state)
-        return {"score": score, "state": game_state}  # ✅ Returning only score at depth 0
-    
+        return {"score": score, "state": game_state}
+
     best_state = None
+
     if is_maximizing:
         best_score = float('-inf')
         for child_state in get_child_states(game_state, is_maximizing):
-            result = minimax(child_state, ai_color, depth - 1, False)
+            result = minimax(child_state, ai_color, depth - 1, False, alpha, beta)
             if result["score"] > best_score:
                 best_score = result["score"]
-                best_state = child_state  # ✅ Store best move
+                best_state = child_state
+            alpha = max(alpha, best_score)
+            if beta <= alpha:
+                print(" Pruning branch (max)")
+                break
     else:
         best_score = float('inf')
         for child_state in get_child_states(game_state, is_maximizing):
-            result = minimax(child_state, ai_color, depth - 1, True)
+            result = minimax(child_state, ai_color, depth - 1, True, alpha, beta)
             if result["score"] < best_score:
                 best_score = result["score"]
-                best_state = child_state  # ✅ Store best move
-    
-    return {"score": best_score, "state": best_state}  # ✅ Return game state at depth N
+                best_state = child_state
+            beta = min(beta, best_score)
+            if beta <= alpha:
+                print(" Pruning branch (min)")
+                break
 
+    return {"score": best_score, "state": best_state}
 
 def generate_state_key(game_state):
     """
