@@ -47,14 +47,14 @@ def ai_service(game_state):
 def minimax(game_state, ai_color, depth, is_maximizing, alpha, beta):
     print(f"{'🔼 Maximizing' if is_maximizing else '🔽 Minimizing'} at depth {depth}")
     ## ✅ Transposition table lookup
-    #state_hash = hash_game_state(game_state)
-    #if state_hash in transposition_table:
-        #return transposition_table[state_hash]
+    state_hash = hash_game_state(game_state)
+    if state_hash in transposition_table:
+        return transposition_table[state_hash]
 
     if depth == 0 or game_over(game_state):
         score = evaluate_game_state(game_state)
         result = {"score": score, "state": game_state}
-        #transposition_table[state_hash] = result  # ✅ Cache result
+        transposition_table[state_hash] = result  # ✅ Cache result
         return {"score": score, "state": game_state}
 
     best_state = None
@@ -82,7 +82,7 @@ def minimax(game_state, ai_color, depth, is_maximizing, alpha, beta):
                 print(" Pruning branch (min)")
                 break
     result = {"score": best_score, "state": best_state}
-    #transposition_table[state_hash] = result        
+    transposition_table[state_hash] = result        
     return result
 
 def generate_state_key(game_state):
