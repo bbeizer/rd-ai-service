@@ -1,7 +1,7 @@
 # game_logic.py
 import copy
 from hashlib import new
-from utils import get_pieces_by_color, position_to_coords, coords_to_position, generate_piece_moves, get_pieces_by_color, get_pieces_by_color_by_rank, extract_rank, get_ball_holder, pass_ball
+from utils import apply_pass, get_pieces_by_color, position_to_coords, coords_to_position, generate_piece_moves, get_pieces_by_color, get_pieces_by_color_by_rank, extract_rank, get_ball_holder
 from collections import deque
 from copy import deepcopy
 
@@ -29,29 +29,34 @@ def check_and_return_win_for_ai(game_state, ai_color):
     """
     Check if the AI can win immediately by moving or passing.
     """
-    human_color = 'white' if ai_color == 'black' else 'black'
-    board = game_state["currentBoardStatus"]
-    human_pieces = get_pieces_by_color(board, human_color)
-    ai_pieces = get_pieces_by_color(board, ai_color)
-    ai_is_maximizing = True if ai_color == 'white' else False
+    ai_is_maximizing = ai_color == 'white'
     back_rank = 8 if ai_is_maximizing else 1
-    print(f"{ai_is_maximizing}")
-    print(f"{back_rank}")
-    #Check for move + pass combinations
-    for piece in ai_pieces:
-        # Generate possible moves
-        possible_moves = get_child_states(game_state, ai_is_maximizing)  # Assuming True means AI moves
-        for state in possible_moves:
-            get_pieces_by_color(state['currentBoardStatus'], ai_color)
-        for new_state in possible_moves:
-            new_board = new_state["currentBoardStatus"]
-            ball_holder = get_ball_holder(get_pieces_by_color(new_board, ai_color))
-            backRankPieces = get_pieces_by_color_by_rank(new_board, back_rank, ai_color)
-            for end_piece in backRankPieces:
-                if is_passable_path(ball_holder, end_piece, human_pieces, ai_pieces):
-                        print(f"🚨 Win found via move + pass for {ai_color}!")
-                        return deepcopy(new_state)  # ✅ Return winning state
-        return None
+
+    print(f"{ai_is_maximizing=}, {back_rank=}")
+
+    possible_states = get_child_states(game_state, ai_is_maximizing)
+
+    for state_idx, state in enumerate(possible_states):
+        new_board = state["currentBoardStatus"]
+        
+        ai_pieces_after_move = get_pieces_by_color(new_board, ai_color)
+        human_pieces_after_move = get_pieces_by_color(new_board, 'white' if ai_color == 'black' else 'black')
+
+        ball_holder = get_ball_holder(ai_pieces_after_move)
+        if not ball_holder:
+            print(f"⚠️ [State {state_idx}] No ball holder found for AI, skipping")
+            continue
+
+        back_rank_pieces = get_pieces_by_color_by_rank(new_board, back_rank, ai_color)
+
+        for end_piece in back_rank_pieces:
+            if is_passable_path(ball_holder, end_piece, human_pieces_after_move, ai_pieces_after_move):
+                winning_state = apply_pass(state, ball_holder, end_piece)
+                ##print(f"🚨 Win found via move + pass for {ai_color}!")
+                return deepcopy(winning_state)
+
+    return None
+
 
 from collections import deque
 
@@ -96,7 +101,6 @@ def is_passable_path(ball_holder, target_piece, opponent_pieces, team_pieces):
                 # **If we reached the target piece, return True ✅**
                 if current_pos == target_piece['position']:
                     print(f"✅ Winning pass found! Path: {path_positions}")
-                    pass_ball(ball_holder, target_piece)
                     return True  # Found a valid pass
 
                 # **If a teammate is in the path, enqueue them for another pass attempt**
@@ -152,23 +156,34 @@ def check_literal_win(board_status):
 def get_child_states(game_state, is_maximizing):
     """
     Generate all possible child states for the current player.
+    Handles passing if a piece holds the ball.
     """
     board_status = game_state['currentBoardStatus']
-    current_color_being_evaluated = 'white' if is_maximizing else 'black'
-    pieces = get_pieces_by_color(board_status, current_color_being_evaluated)
+    current_color = 'white' if is_maximizing else 'black'
+    pieces = get_pieces_by_color(board_status, current_color)
+    opponent_pieces = get_pieces_by_color(board_status, 'black' if is_maximizing else 'white')
     child_states = []
 
-    #print(f"Generating child states for {'maximizing' if is_maximizing else 'minimizing'} player: {current_color_being_evaluated}")
-
     for piece in pieces:
-        #print(f"Processing piece at {piece['position']}")
-        possible_moves = generate_piece_moves(piece['position'], board_status)
-        for move in possible_moves:
-            updated_state = update_board(game_state, piece, move)
-            #print(f"Updated board after moving {piece['position']} -> {move}")
-            child_states.append(updated_state)
+        if piece['hasBall']:
+            # 🏀 Ball-holder: must PASS first before moving
+            for teammate in pieces:
+                if teammate['position'] != piece['position']:
+                    if is_passable_path(piece, teammate, opponent_pieces, pieces):
+                        # Create a state where the ball is passed
+                        passed_state = apply_pass(game_state, piece, teammate)
+                        # After passing, the piece can now move
+                        possible_moves = generate_piece_moves(piece['position'], passed_state['currentBoardStatus'])
+                        for move in possible_moves:
+                            moved_state = update_board(passed_state, piece, move)
+                            child_states.append(moved_state)
+        else:
+            # 🧍 Non-ball-holder: can move normally
+            possible_moves = generate_piece_moves(piece['position'], board_status)
+            for move in possible_moves:
+                updated_state = update_board(game_state, piece, move)
+                child_states.append(updated_state)
 
-    #print(f"Total child states generated: {len(child_states)}")
     return child_states
 
 

@@ -1,6 +1,24 @@
 # utils.py
 import json
 import hashlib
+from copy import deepcopy
+
+def apply_pass(game_state, from_piece, to_piece):
+    """
+    Returns a new game state where the ball is passed from from_piece to to_piece.
+    Assumes the pass is valid.
+    """
+    new_state = deepcopy(game_state)
+    board = new_state["currentBoardStatus"]
+
+    from_pos = from_piece["position"]
+    to_pos = to_piece["position"]
+
+    # Transfer ball
+    board[from_pos]["hasBall"] = False
+    board[to_pos]["hasBall"] = True
+
+    return new_state
 
 def hash_game_state(game_state):
     """
@@ -54,16 +72,6 @@ def get_pieces_by_color_by_rank(board, rank, color):
     ]
     print(f"Pieces on rank {rank}: {[p['position'] for p in pieces]}")  # Log positions of pieces
     return pieces
-
-def pass_ball(from_piece, to_piece):
-    """
-    Transfers the ball from `from_piece` to `to_piece`.
-    Assumes the pass has already been validated by `is_passable_path`.
-    """
-    from_piece['hasBall'] = False
-    to_piece['hasBall'] = True
-
-
 
 def get_ball_holder(pieces):
     for piece in pieces:
