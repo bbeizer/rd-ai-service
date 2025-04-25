@@ -1,4 +1,5 @@
 # ai_service.py
+import time
 from copy import deepcopy
 from game_logic import (
     check_and_return_win_for_ai,
@@ -8,9 +9,8 @@ from game_logic import (
     check_for_win,
     is_passable_path
 )
-from utils import extract_file, extract_rank, get_ball_holder
+from utils import hash_game_state, extract_file, extract_rank, get_ball_holder
 
-# (Optional) If you later want caching at the base level:
 transposition_table = {}
 
 def ai_service(game_state):
@@ -18,7 +18,7 @@ def ai_service(game_state):
     Compute the AI move using minimax and return the updated game state.
     Immediate forced win detection is done at the base case.
     """
-    depth = 5  # Adjust as needed for lookahead
+    depth = 3  # Adjust as needed for lookahead
     print("🚀 STARTING MINIMAX")
     ai_color = game_state["aiColor"]
     is_maximizing = True if ai_color == "white" else False
@@ -29,7 +29,15 @@ def ai_service(game_state):
         winning_state["status"] = 'completed'
         winning_state["winner"] = 'AI'
         return deepcopy(winning_state)  # ✅ **Return immediately**
+    # 🔍 Benchmark Start
+    start_time = time.time()
+
     result = minimax(game_state, ai_color, depth, is_maximizing, alpha=float('-inf'), beta=float('inf'))
+
+    # 🔍 Benchmark End
+    elapsed = time.time() - start_time
+    print(f"⏱️ Minimax took {elapsed:.2f} seconds at depth {depth}")
+
     best_state = result["state"]
     
     print(f"✅ Best move chosen with score: {result['score']}")
@@ -38,9 +46,15 @@ def ai_service(game_state):
 
 def minimax(game_state, ai_color, depth, is_maximizing, alpha, beta):
     print(f"{'🔼 Maximizing' if is_maximizing else '🔽 Minimizing'} at depth {depth}")
+    ## ✅ Transposition table lookup
+    #state_hash = hash_game_state(game_state)
+    #if state_hash in transposition_table:
+        #return transposition_table[state_hash]
 
     if depth == 0 or game_over(game_state):
         score = evaluate_game_state(game_state)
+        result = {"score": score, "state": game_state}
+        #transposition_table[state_hash] = result  # ✅ Cache result
         return {"score": score, "state": game_state}
 
     best_state = None
@@ -67,8 +81,9 @@ def minimax(game_state, ai_color, depth, is_maximizing, alpha, beta):
             if beta <= alpha:
                 print(" Pruning branch (min)")
                 break
-
-    return {"score": best_score, "state": best_state}
+    result = {"score": best_score, "state": best_state}
+    #transposition_table[state_hash] = result        
+    return result
 
 def generate_state_key(game_state):
     """

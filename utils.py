@@ -1,4 +1,33 @@
 # utils.py
+import json
+import hashlib
+
+def hash_game_state(game_state):
+    """
+    Creates a consistent hash based on currentBoardStatus.
+    """
+    board = game_state["currentBoardStatus"]
+
+    # Sort the board keys to get consistent order
+    sorted_items = sorted(board.items())  # [('a1', None), ('c1', {'color':..., ...}), ...]
+
+    serializable_board = []
+
+    for position, piece in sorted_items:
+        if piece is None:
+            serializable_board.append((position, None))
+        else:
+            serializable_board.append((
+                position,
+                {
+                    "color": piece["color"],
+                    "hasBall": piece["hasBall"]
+                }
+            ))
+
+    # Serialize and hash
+    board_str = json.dumps(serializable_board, sort_keys=True)
+    return hashlib.sha256(board_str.encode('utf-8')).hexdigest()
 
 def get_pieces_by_color(board, color):
     pieces = [
