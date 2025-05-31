@@ -19,13 +19,13 @@ def ai_service(game_state):
     Immediate forced win detection is done at the base case.
     """
     depth = 3  # Adjust as needed for lookahead
-    print("🚀 STARTING MINIMAX")
+    #print("🚀 STARTING MINIMAX")
     ai_color = game_state["aiColor"]
     is_maximizing = True if ai_color == "white" else False
         # ✅ **Step 1: Check for Immediate Forced Win**
     winning_state = check_and_return_win_for_ai(game_state, ai_color)
     if winning_state:
-        print(f"🏆 IMMEDIATE WIN FOUND for {ai_color}!")
+        #print(f"🏆 IMMEDIATE WIN FOUND for {ai_color}!")
         winning_state["status"] = 'completed'
         winning_state["winner"] = 'AI'
         return deepcopy(winning_state)  # ✅ **Return immediately**
@@ -36,17 +36,18 @@ def ai_service(game_state):
 
     # 🔍 Benchmark End
     #elapsed = time.time() - start_time
-    #print(f"⏱️ Minimax took {elapsed:.2f} seconds at depth {depth}")
+    ##print(f"⏱️ Minimax took {elapsed:.2f} seconds at depth {depth}")
 
     best_state = result["state"]
     best_state["currentPlayerTurn"] = "white" if ai_color == "black" else "black"
+    best_state["hasMoved"] = False
     
-    print(f"✅ Best move chosen with score: {result['score']}")
-    print("💾 Deepcopying the best state to return...")
+    #print(f"✅ Best move chosen with score: {result['score']}")
+    #print("💾 Deepcopying the best state to return...")
     return deepcopy(best_state)
 
 def minimax(game_state, ai_color, depth, is_maximizing, alpha, beta):
-    print(f"{'🔼 Maximizing' if is_maximizing else '🔽 Minimizing'} at depth {depth}")
+    #print(f"{'🔼 Maximizing' if is_maximizing else '🔽 Minimizing'} at depth {depth}")
     ## ✅ Transposition table lookup
     state_hash = hash_game_state(game_state)
     if state_hash in transposition_table:
@@ -69,7 +70,7 @@ def minimax(game_state, ai_color, depth, is_maximizing, alpha, beta):
                 best_state = child_state
             alpha = max(alpha, best_score)
             if beta <= alpha:
-                print(" Pruning branch (max)")
+                #print(" Pruning branch (max)")
                 break
     else:
         best_score = float('inf')
@@ -80,7 +81,7 @@ def minimax(game_state, ai_color, depth, is_maximizing, alpha, beta):
                 best_state = child_state
             beta = min(beta, best_score)
             if beta <= alpha:
-                print(" Pruning branch (min)")
+                #print(" Pruning branch (min)")
                 break
     result = {"score": best_score, "state": best_state}
     transposition_table[state_hash] = result        
@@ -127,7 +128,7 @@ def evaluate_game_state(game_state):
     score += 3 * reward_defensive_positioning(white_pieces, black_pieces)
     score -= 3 * reward_defensive_positioning(black_pieces, white_pieces)
     
-    print(f"[Evaluation] Score: {score}")
+    #print(f"[Evaluation] Score: {score}")
     return score
 
 def reward_progress_toward_endzone(white_pieces, black_pieces):

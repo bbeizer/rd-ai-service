@@ -32,7 +32,7 @@ def check_and_return_win_for_ai(game_state, ai_color):
     ai_is_maximizing = ai_color == 'white'
     back_rank = 8 if ai_is_maximizing else 1
 
-    print(f"{ai_is_maximizing=}, {back_rank=}")
+    #print(f"{ai_is_maximizing=}, {back_rank=}")
 
     possible_states = get_child_states(game_state, ai_is_maximizing)
 
@@ -44,7 +44,7 @@ def check_and_return_win_for_ai(game_state, ai_color):
 
         ball_holder = get_ball_holder(ai_pieces_after_move)
         if not ball_holder:
-            print(f"⚠️ [State {state_idx}] No ball holder found for AI, skipping")
+            #print(f"⚠️ [State {state_idx}] No ball holder found for AI, skipping")
             continue
 
         back_rank_pieces = get_pieces_by_color_by_rank(new_board, back_rank, ai_color)
@@ -52,7 +52,7 @@ def check_and_return_win_for_ai(game_state, ai_color):
         for end_piece in back_rank_pieces:
             if is_passable_path(ball_holder, end_piece, human_pieces_after_move, ai_pieces_after_move):
                 winning_state = apply_pass(state, ball_holder, end_piece)
-                ##print(f"🚨 Win found via move + pass for {ai_color}!")
+                ###print(f"🚨 Win found via move + pass for {ai_color}!")
                 return deepcopy(winning_state)
 
     return None
@@ -68,7 +68,7 @@ def is_passable_path(ball_holder, target_piece, opponent_pieces, team_pieces):
     - Teammates **do not** block the pass and can **relay** the ball.
     """
 
-    print(f"\n🔍 Checking pass chain from {ball_holder['position']} to {target_piece['position']}")
+    #print(f"\n🔍 Checking pass chain from {ball_holder['position']} to {target_piece['position']}")
 
     # Directions for possible passes (orthogonal + diagonal)
     directions = [
@@ -95,18 +95,18 @@ def is_passable_path(ball_holder, target_piece, opponent_pieces, team_pieces):
 
                 # **Opponent blocks the path**
                 if any(p['position'] == current_pos for p in opponent_pieces):
-                    print(f"❌ Blocked by opponent at {current_pos}, stopping direction.")
+                    #print(f"❌ Blocked by opponent at {current_pos}, stopping direction.")
                     break  # Stop looking in this direction
 
                 # **If we reached the target piece, return True ✅**
                 if current_pos == target_piece['position']:
-                    print(f"✅ Winning pass found! Path: {path_positions}")
+                    #print(f"✅ Winning pass found! Path: {path_positions}")
                     return True  # Found a valid pass
 
                 # **If a teammate is in the path, enqueue them for another pass attempt**
                 teammate = next((p for p in team_pieces if p['position'] == current_pos), None)
                 if teammate and teammate['position'] not in visited:
-                    print(f"🔄 Pass possible to teammate at {current_pos}, adding to queue.")
+                    #print(f"🔄 Pass possible to teammate at {current_pos}, adding to queue.")
                     queue.append(teammate)  # Continue searching from this teammate
                     visited.add(teammate['position'])
                     break  # Stop further movement in this direction
@@ -115,7 +115,7 @@ def is_passable_path(ball_holder, target_piece, opponent_pieces, team_pieces):
                 temp_file += file_step
                 temp_rank += rank_step
 
-    print(f"❌ No passable path found from {ball_holder['position']} to {target_piece['position']}")
+    #print(f"❌ No passable path found from {ball_holder['position']} to {target_piece['position']}")
     return False  # No valid path found
 
 def check_for_win(game_state, color):

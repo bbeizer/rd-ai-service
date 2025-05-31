@@ -52,7 +52,7 @@ def get_pieces_by_color(board, color):
         piece for pos, piece in board.items()
         if piece and piece['color'] == color
     ]
-    print(f"Pieces for {color}: {[p['position'] for p in pieces]}")  # Log positions of pieces
+    #print(f"Pieces for {color}: {[p['position'] for p in pieces]}")  # Log positions of pieces
     return pieces
 
 def get_pieces_by_color_by_rank(board, rank, color):
@@ -70,7 +70,7 @@ def get_pieces_by_color_by_rank(board, rank, color):
         piece for pos, piece in board.items()
         if piece and extract_rank(pos) == rank and piece['color'] == color
     ]
-    print(f"Pieces on rank {rank}: {[p['position'] for p in pieces]}")  # Log positions of pieces
+    #print(f"Pieces on rank {rank}: {[p['position'] for p in pieces]}")  # Log positions of pieces
     return pieces
 
 def get_ball_holder(pieces):
@@ -128,7 +128,7 @@ def generate_piece_moves(pos, board):
         new_x, new_y = x + dx, y + dy
         if is_valid_position(new_x, new_y, board):
             legal_moves.append(coords_to_position(new_x, new_y))
-    print(f"Moves generated for {pos}: {legal_moves}")
+    #print(f"Moves generated for {pos}: {legal_moves}")
     return legal_moves
 
 
