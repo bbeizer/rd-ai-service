@@ -30,15 +30,16 @@ def ai_service(game_state):
         winning_state["winner"] = 'AI'
         return deepcopy(winning_state)  # ✅ **Return immediately**
     # 🔍 Benchmark Start
-    start_time = time.time()
+    #start_time = time.time()
 
     result = minimax(game_state, ai_color, depth, is_maximizing, alpha=float('-inf'), beta=float('inf'))
 
     # 🔍 Benchmark End
-    elapsed = time.time() - start_time
-    print(f"⏱️ Minimax took {elapsed:.2f} seconds at depth {depth}")
+    #elapsed = time.time() - start_time
+    #print(f"⏱️ Minimax took {elapsed:.2f} seconds at depth {depth}")
 
     best_state = result["state"]
+    best_state["currentPlayerTurn"] = "white" if ai_color == "black" else "black"
     
     print(f"✅ Best move chosen with score: {result['score']}")
     print("💾 Deepcopying the best state to return...")
