@@ -18,14 +18,17 @@ def get_ai_move():
         return response
 
     try:
-        game_state = request.get_json()
-        if not game_state:
-            logging.error("No game state received in request.")
-            return jsonify({'error': 'Invalid or missing game state'}), 400
+        data = request.get_json()
+        if not data or 'game' not in data or 'color' not in data:
+            logging.error("Missing 'game' or 'color' in request.")
+            return jsonify({'error': 'Missing game or color'}), 400
+        game_state = data["game"]
+        ai_color = data["color"]
+        game_state["aiColor"] = ai_color
 
         logging.info("📥 Received game state:\n%s", json.dumps(game_state, indent=2))
 
-        updated_game_state = ai_service(game_state)
+        updated_game_state = ai_service(game_state, ai_color)
 
         if "currentBoardStatus" not in updated_game_state:
             logging.error("AI service returned incomplete game state.")

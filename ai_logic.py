@@ -13,14 +13,13 @@ from utils import hash_game_state, extract_file, extract_rank, get_ball_holder
 
 transposition_table = {}
 
-def ai_service(game_state):
+def ai_service(game_state, ai_color):
     """
     Compute the AI move using minimax and return the updated game state.
     Immediate forced win detection is done at the base case.
     """
     depth = 3  # Adjust as needed for lookahead
     #print("🚀 STARTING MINIMAX")
-    ai_color = game_state["aiColor"]
     is_maximizing = True if ai_color == "white" else False
         # ✅ **Step 1: Check for Immediate Forced Win**
     winning_state = check_and_return_win_for_ai(game_state, ai_color)
