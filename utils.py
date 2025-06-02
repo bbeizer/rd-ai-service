@@ -116,11 +116,17 @@ def is_valid_position(col, row, board):
 def generate_piece_moves(pos, board):
     """
     Generate all valid knight moves from a given position.
+    Ball holders cannot move.
     """
+    piece = board.get(pos)
+    if piece and piece.get('hasBall'):
+        return []
+
     knight_offsets = [
         (2, 1), (2, -1), (-2, 1), (-2, -1),
         (1, 2), (1, -2), (-1, 2), (-1, -2)
     ]
+
     legal_moves = []
     x, y = position_to_coords(pos)
 
@@ -128,8 +134,9 @@ def generate_piece_moves(pos, board):
         new_x, new_y = x + dx, y + dy
         if is_valid_position(new_x, new_y, board):
             legal_moves.append(coords_to_position(new_x, new_y))
-    #print(f"Moves generated for {pos}: {legal_moves}")
+
     return legal_moves
+
 
 
 def generate_ball_passes(pos, board, color):
