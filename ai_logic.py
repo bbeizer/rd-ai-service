@@ -27,6 +27,8 @@ def ai_service(game_state, ai_color):
         #print(f"🏆 IMMEDIATE WIN FOUND for {ai_color}!")
         winning_state["status"] = 'completed'
         winning_state["winner"] = 'AI'
+        winning_state["aiColor"] = ai_color
+        
         return deepcopy(winning_state)  # ✅ **Return immediately**
     # 🔍 Benchmark Start
     #start_time = time.time()
@@ -40,6 +42,7 @@ def ai_service(game_state, ai_color):
     best_state = result["state"]
     best_state["currentPlayerTurn"] = "white" if ai_color == "black" else "black"
     best_state["hasMoved"] = False
+    best_state["aiColor"] = ai_color
     
     #print(f"✅ Best move chosen with score: {result['score']}")
     #print("💾 Deepcopying the best state to return...")
