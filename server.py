@@ -10,7 +10,7 @@ from flask_cors import CORS
 import logging
 import json
 from ai_logic import ai_service
-from utils import validate_game_state, ensure_single_ball
+from utils import validate_game_state, ensure_correct_ball_count
 
 app = Flask(__name__)
 CORS(app, supports_credentials=True)
@@ -57,7 +57,7 @@ def get_ai_move():
         if not is_valid:
             logging.error(f"Invalid game state received: {error_msg}")
             # Try to fix the state
-            game_state = ensure_single_ball(game_state)
+            game_state = ensure_correct_ball_count(game_state)
             logging.info("Attempted to fix game state before AI processing")
         
         game_state["aiColor"] = ai_color
@@ -72,6 +72,14 @@ def get_ai_move():
         if "currentBoardStatus" not in updated_game_state:
             logging.error("AI service returned incomplete game state")
             return jsonify({'error': 'Incomplete game state returned'}), 500
+
+        # Validate AI response
+        is_valid_response, error_msg_response = validate_game_state(updated_game_state)
+        if not is_valid_response:
+            logging.error(f"AI returned invalid state: {error_msg_response}")
+            # Fix the AI response
+            updated_game_state = ensure_correct_ball_count(updated_game_state)
+            logging.info("Fixed AI response state")
 
         logging.info("AI move computed successfully")
         logging.debug("Updated game state: %s", json.dumps(updated_game_state, indent=2))
