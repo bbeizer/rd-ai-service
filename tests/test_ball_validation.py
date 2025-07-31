@@ -9,7 +9,7 @@ import os
 # Add the parent directory to the path so we can import our modules
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils import validate_game_state, ensure_single_ball, get_ball_holder, get_pieces_by_color
+from utils import validate_game_state, ensure_correct_ball_count, get_ball_holder, get_pieces_by_color
 from ai_logic import ai_service
 
 class TestBallValidation(unittest.TestCase):
@@ -58,8 +58,8 @@ class TestBallValidation(unittest.TestCase):
         self.assertFalse(is_valid, "No ball should be detected")
         self.assertIn("No ball found", message)
     
-    def test_ensure_single_ball_fixes_multiple(self):
-        """Test that ensure_single_ball fixes multiple ball issues."""
+    def test_ensure_correct_ball_count_fixes_multiple(self):
+        """Test that ensure_correct_ball_count fixes multiple ball issues."""
         # Create state with multiple balls
         bad_state = self.valid_game_state.copy()
         bad_state["currentBoardStatus"]["b1"]["hasBall"] = True
@@ -67,7 +67,7 @@ class TestBallValidation(unittest.TestCase):
         bad_state["currentBoardStatus"]["d1"]["hasBall"] = True  # Third ball!
         
         # Fix the state
-        fixed_state = ensure_single_ball(bad_state)
+        fixed_state = ensure_correct_ball_count(bad_state)
         
         # Check that only one ball remains
         ball_holders = []

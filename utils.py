@@ -270,18 +270,29 @@ def validate_game_state(game_state):
     """
     board = game_state.get("currentBoardStatus", {})
     
-    # Check for multiple balls
+    # Check for ball holders
     ball_holders = []
     for pos, piece in board.items():
         if piece and piece.get('hasBall', False):
             ball_holders.append((pos, piece))
     
-    if len(ball_holders) > 1:
-        error_msg = f"Multiple balls detected! Found {len(ball_holders)} pieces with balls: {[pos for pos, _ in ball_holders]}"
-        return False, error_msg
-    
+    # This game has 2 balls (one per player), so 2 ball holders is correct
     if len(ball_holders) == 0:
         return False, "No ball found on the board!"
+    
+    if len(ball_holders) > 2:
+        error_msg = f"Too many balls detected! Found {len(ball_holders)} pieces with balls: {[pos for pos, _ in ball_holders]}"
+        return False, error_msg
+    
+    # Check that each player has exactly one ball
+    white_balls = [pos for pos, piece in ball_holders if piece['color'] == 'white']
+    black_balls = [pos for pos, piece in ball_holders if piece['color'] == 'black']
+    
+    if len(white_balls) > 1:
+        return False, f"White has multiple balls: {white_balls}"
+    
+    if len(black_balls) > 1:
+        return False, f"Black has multiple balls: {black_balls}"
     
     # Check for invalid piece data
     for pos, piece in board.items():
@@ -295,9 +306,9 @@ def validate_game_state(game_state):
     
     return True, "Game state is valid"
 
-def ensure_single_ball(game_state):
+def ensure_correct_ball_count(game_state):
     """
-    Ensure only one piece has the ball by removing extra balls.
+    Ensure each player has exactly one ball by removing extra balls.
     
     Args:
         game_state (dict): Game state to fix
@@ -313,10 +324,18 @@ def ensure_single_ball(game_state):
         if piece and piece.get('hasBall', False):
             ball_holders.append((pos, piece))
     
-    # If multiple balls, keep only the first one
-    if len(ball_holders) > 1:
-        logging.warning(f"Multiple balls detected! Keeping first ball at {ball_holders[0][0]}")
-        for pos, piece in ball_holders[1:]:
+    # Group by color
+    white_balls = [(pos, piece) for pos, piece in ball_holders if piece['color'] == 'white']
+    black_balls = [(pos, piece) for pos, piece in ball_holders if piece['color'] == 'black']
+    
+    # If white has multiple balls, keep only the first one
+    if len(white_balls) > 1:
+        for pos, piece in white_balls[1:]:
+            board[pos]["hasBall"] = False
+    
+    # If black has multiple balls, keep only the first one
+    if len(black_balls) > 1:
+        for pos, piece in black_balls[1:]:
             board[pos]["hasBall"] = False
     
     return game_state
