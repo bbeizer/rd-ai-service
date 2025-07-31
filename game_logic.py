@@ -175,7 +175,9 @@ def get_child_states(game_state, is_maximizing):
                         # After passing, the piece can now move
                         possible_moves = generate_piece_moves(piece['position'], passed_state['currentBoardStatus'])
                         for move in possible_moves:
-                            moved_state = update_board(passed_state, piece, move)
+                            # Get the piece from the passed state (without ball) instead of original piece
+                            piece_without_ball = passed_state['currentBoardStatus'][piece['position']]
+                            moved_state = update_board(passed_state, piece_without_ball, move)
                             child_states.append(moved_state)
         else:
             # 🧍 Non-ball-holder: can move normally

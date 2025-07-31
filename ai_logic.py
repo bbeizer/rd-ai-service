@@ -6,6 +6,7 @@ and transposition table caching for the game AI.
 """
 
 import time
+import logging
 from copy import deepcopy
 from game_logic import (
     check_and_return_win_for_ai,
@@ -15,7 +16,7 @@ from game_logic import (
     check_for_win,
     is_passable_path
 )
-from utils import hash_game_state, extract_file, extract_rank, get_ball_holder
+from utils import hash_game_state, extract_file, extract_rank, get_ball_holder, validate_game_state, ensure_single_ball
 
 # Global transposition table for caching evaluated positions
 transposition_table = {}
@@ -31,6 +32,14 @@ def ai_service(game_state, ai_color):
     Returns:
         dict: Updated game state after AI move
     """
+    # Validate input game state
+    is_valid, error_msg = validate_game_state(game_state)
+    if not is_valid:
+        logging.error(f"Invalid game state: {error_msg}")
+        # Try to fix the state
+        game_state = ensure_single_ball(game_state)
+        logging.info("Attempted to fix game state")
+    
     depth = 3  # Search depth for minimax
     is_maximizing = ai_color == "white"
     
@@ -50,6 +59,13 @@ def ai_service(game_state, ai_color):
     best_state["currentPlayerTurn"] = "white" if ai_color == "black" else "black"
     best_state["hasMoved"] = False
     best_state["aiColor"] = ai_color
+    
+    # Validate and fix the result state
+    is_valid, error_msg = validate_game_state(best_state)
+    if not is_valid:
+        logging.error(f"AI generated invalid state: {error_msg}")
+        best_state = ensure_single_ball(best_state)
+        logging.info("Fixed AI-generated game state")
     
     return deepcopy(best_state)
 

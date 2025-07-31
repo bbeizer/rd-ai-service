@@ -10,6 +10,7 @@ from flask_cors import CORS
 import logging
 import json
 from ai_logic import ai_service
+from utils import validate_game_state, ensure_single_ball
 
 app = Flask(__name__)
 CORS(app, supports_credentials=True)
@@ -50,6 +51,14 @@ def get_ai_move():
         if ai_color not in ['white', 'black']:
             logging.error(f"Invalid AI color: {ai_color}")
             return jsonify({'error': 'Invalid color. Must be "white" or "black"'}), 400
+        
+        # Validate game state before processing
+        is_valid, error_msg = validate_game_state(game_state)
+        if not is_valid:
+            logging.error(f"Invalid game state received: {error_msg}")
+            # Try to fix the state
+            game_state = ensure_single_ball(game_state)
+            logging.info("Attempted to fix game state before AI processing")
         
         game_state["aiColor"] = ai_color
 

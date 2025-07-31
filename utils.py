@@ -8,6 +8,7 @@ position conversion, move generation, and other utility operations.
 import json
 import hashlib
 from copy import deepcopy
+import logging
 
 def apply_pass(game_state, from_piece, to_piece):
     """
@@ -256,3 +257,66 @@ def generate_ball_passes(pos, board, color):
                 valid_passes.append(target_pos)
 
     return valid_passes
+
+def validate_game_state(game_state):
+    """
+    Validate the game state for common issues like multiple balls.
+    
+    Args:
+        game_state (dict): Game state to validate
+    
+    Returns:
+        tuple: (is_valid, error_message)
+    """
+    board = game_state.get("currentBoardStatus", {})
+    
+    # Check for multiple balls
+    ball_holders = []
+    for pos, piece in board.items():
+        if piece and piece.get('hasBall', False):
+            ball_holders.append((pos, piece))
+    
+    if len(ball_holders) > 1:
+        error_msg = f"Multiple balls detected! Found {len(ball_holders)} pieces with balls: {[pos for pos, _ in ball_holders]}"
+        return False, error_msg
+    
+    if len(ball_holders) == 0:
+        return False, "No ball found on the board!"
+    
+    # Check for invalid piece data
+    for pos, piece in board.items():
+        if piece is not None:
+            if 'color' not in piece:
+                return False, f"Piece at {pos} missing color"
+            if 'position' not in piece:
+                return False, f"Piece at {pos} missing position"
+            if piece['color'] not in ['white', 'black']:
+                return False, f"Invalid color at {pos}: {piece['color']}"
+    
+    return True, "Game state is valid"
+
+def ensure_single_ball(game_state):
+    """
+    Ensure only one piece has the ball by removing extra balls.
+    
+    Args:
+        game_state (dict): Game state to fix
+    
+    Returns:
+        dict: Fixed game state
+    """
+    board = game_state["currentBoardStatus"]
+    ball_holders = []
+    
+    # Find all pieces with balls
+    for pos, piece in board.items():
+        if piece and piece.get('hasBall', False):
+            ball_holders.append((pos, piece))
+    
+    # If multiple balls, keep only the first one
+    if len(ball_holders) > 1:
+        logging.warning(f"Multiple balls detected! Keeping first ball at {ball_holders[0][0]}")
+        for pos, piece in ball_holders[1:]:
+            board[pos]["hasBall"] = False
+    
+    return game_state
